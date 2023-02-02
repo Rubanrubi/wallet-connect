@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import Web3 from 'web3';
 import WalletConnectProvider from '@walletconnect/web3-provider';
 import { from, Observable } from 'rxjs';
+import { Web3Service } from 'ng-blockchainx'
 const abi =  require('../assets/erc20.json');
 
 @Component({
@@ -14,21 +15,47 @@ export class AppComponent {
   private web3: any;
   private walletConnectProvider: any;
   private contract: any;
+  public web3Set : any;
+
+  constructor(
+  public web3Service:Web3Service
+){
+
+}
+
 
   async ngOnInit() {
-    this.walletConnectProvider = new WalletConnectProvider({
-      rpc: {
-        [97]: 'https://data-seed-prebsc-1-s1.binance.org:8545'
-      },
-      bridge: 'https://bridge.walletconnect.org'
+    // this.walletConnectProvider = new WalletConnectProvider({
+    //   rpc: {
+    //     [80001]: 'https://rpc-mumbai.matic.today/'
+    //   },
+    //   bridge: 'https://bridge.walletconnect.org'
+    // });
+    // console.log('wallet connect',this.walletConnectProvider);
+    // this.web3 = new Web3(this.walletConnectProvider);
+    // console.log('web3',this.web3);
+    // this.walletConnectProvider.enable();
+    // this.contract = new this.web3.eth.Contract(abi, '0xd8a5e61277dA186C5AEEE42cA3C3E82d7C435a68');
+    // const txRecept = await this.web3.eth.getTransactionReceipt("0x6b76683c2276b42208c8b0183f156933ef3446b6bb26d50437407ffb18096843").then('jhjghfjhgjfh',console.log);
+    // console.log("Transaction", txRecept);
+const params  ={
+  chainId:'80001',
+  rpcUrl:'https://endpoints.omniatech.io/v1/matic/mumbai/public', 
+}
+const walletType = 2;
+console.log("params, walletType",params, walletType);
+
+    this.web3Service.connect(params, walletType).then((response) => {
+      console.log("response",response);
+      
     });
-    console.log('wallet connect',this.walletConnectProvider);
-    this.web3 = new Web3(this.walletConnectProvider);
-    console.log('web3',this.web3);
-    this.walletConnectProvider.enable();
-    this.contract = new this.web3.eth.Contract(abi, '0xcBBC92E18B69fB3775D40E8183419FBf364138a6');
-    const txRecept = await this.web3.eth.getTransactionReceipt("0x6b76683c2276b42208c8b0183f156933ef3446b6bb26d50437407ffb18096843").then('jhjghfjhgjfh',console.log);
-    console.log("Transaction", txRecept);
+    this.web3Set = this.web3Service.web3;
+     
+     this.web3Service.getContract(require('../assets/erc20.json'),'0xd8a5e61277dA186C5AEEE42cA3C3E82d7C435a68').then((response) => {
+      this.contract = response;
+    });
+    
+    
   }
 
   // public sendTransaction = new Observable((observer) => {
@@ -42,17 +69,76 @@ export class AppComponent {
   //   return this.web3.eth.sendTransaction(message);
   // });
 
+
+  async send(){
+    console.log("called here");
+    console.log("this.contract",this.contract);
+    const message = {
+      tokenName: "name.value",
+      tokenSymbol: "symbol.value",
+      baseUri: "environment.BASE_URL",
+    };
+    const createCollectionAbi = await this.contract.methods.pause().encodeABI();
+    const data = {
+      method:'eth_sendTransaction',
+      from:'0xB5937edC8346c3c4E726137CAB1016D39b8b0F47',
+      to:'0xd8a5e61277dA186C5AEEE42cA3C3E82d7C435a68',
+      data:createCollectionAbi
+
+    }
+    console.log("data",data);
+    
+    const sendResponse = await this.sendCheck(data);
+    console.log("sendResponse",sendResponse);
+    
+    
+    
+  }
+  public sendCheck(data:any){
+    return new Promise( (resolve: any, reject: any)  => {
+      this.web3Service.web3.eth.sendTransaction(data).then((response : any) => {
+        console.log("response",response);
+      }).
+      catch((error : any) => {
+        console.log("error",error);
+        
+      })  
+    })
+  }
   /**
    * Sends transaction
    */
   public async sendTransaction() {
-    const transferAbi = this.contract.methods.transfer("0x84281bCeF8Bd174c4AF7747807BDf037B4a49880", "1000000000000000000000").encodeABI();
+    const data = {
+      tokenName: "name.value",
+      tokenSymbol: "symbol.value",
+      baseUri: "environment.BASE_URL",
+    };
+    const createCollectionAbi = await this.contract.methods.createERC721Collection(data.tokenName, data.tokenSymbol, data.baseUri).encodeABI();
     const message = {
       method: 'eth_sendTransaction',
-      from: "0x7a7D6f253bE83b4FB07c7b02d2247672BD46eAb5",
-      to: "0xcBBC92E18B69fB3775D40E8183419FBf364138a6",
-      data: transferAbi,
-    }
+      from: '0xB5937edC8346c3c4E726137CAB1016D39b8b0F47',
+      to: '0xd8a5e61277dA186C5AEEE42cA3C3E82d7C435a68',
+      data: createCollectionAbi,
+    };
+    // debugger
+    // await this.web3.eth.sendTransaction(message)
+    //     .then((receipt: { logs: { address: any; }[]; }) => {
+    //       console.log("receipt",receipt);
+    //     })
+    //     .catch((error: { code: number; }) => {
+    //       console.log("error",error);
+          
+    //     });
+    // const transferAbi = this.contract.methods.transfer("0x84281bCeF8Bd174c4AF7747807BDf037B4a49880", "1000000000000000000000").encodeABI();
+    // const message = {
+    //   method: 'eth_sendTransaction',
+    //   from: "0x7a7D6f253bE83b4FB07c7b02d2247672BD46eAb5",
+    //   to: "0xcBBC92E18B69fB3775D40E8183419FBf364138a6",
+    //   data: transferAbi,
+    // }
+    console.log("message",message);
+    debugger
     await this.web3.eth.sendTransaction(message)
     .on('transactionHash',async (hash: any) => { 
       console.log('transactionHash', hash);
